@@ -1,0 +1,147 @@
+class Node:
+    # класс узла односвязного списка
+    # хранит значение и ссылку на следующий узел
+    def __init__(self, value):
+        self.value = value  # число или данные, которые храним в узле
+        self.next = None    # ссылка на следующий узел (изначально None)
+
+
+class Queue:
+    # класс очереди на базе односвязного списка
+    # поддерживает операции добавления в конец и удаления из начала за O(1)
+    def __init__(self):
+        self.front = None  # начало очереди — элемент, который будет извлечён первым
+        self.rear = None   # конец очереди — элемент, в который мы добавляем новые данные
+
+    def enqueue(self, value):
+        # добавляет новый элемент в конец очереди
+        new_node = Node(value)
+        if self.rear is None:
+            # если очередь пустая, новый узел — и начало, и конец
+            self.front = new_node
+        else:
+            # если очередь не пустая, связать последний узел с новым
+            self.rear.next = new_node
+        self.rear = new_node  # обновить указатель на конец очереди
+
+    def dequeue(self):
+        # удаляет и возвращает элемент из начала очереди
+        if self.is_empty():
+            raise Exception("ошибка: попытка извлечь из пустой очереди")
+        value = self.front.value
+        self.front = self.front.next  # сдвигаем начало очереди
+        if self.front is None:
+            # если очередь стала пустой, обнуляем и конец
+            self.rear = None
+        return value
+
+    def peek(self):
+        # возвращает значение первого элемента очереди без удаления
+        if self.is_empty():
+            raise Exception("ошибка: очередь пуста")
+        return self.front.value
+
+    def is_empty(self):
+        # проверяет, пуста ли очередь
+        return self.front is None
+
+
+class UglyNumberGenerator:
+    # класс для генерации первых n уродливых чисел
+    # использует три очереди для управления кандидатами на умножение на 2, 3 и 5
+    def __init__(self, count):
+        self.count = count  # сколько уродливых чисел нужно сгенерировать
+        self.result_head = Node(1)  # связный список с первым уродливым числом 1
+
+        # создаём очереди для чисел, которые будут умножаться на 2, 3 и 5
+        self.q2 = Queue()
+        self.q3 = Queue()
+        self.q5 = Queue()
+
+        # помещаем начальные значения в очереди (1*2, 1*3, 1*5)
+        self.q2.enqueue(2)
+        self.q3.enqueue(3)
+        self.q5.enqueue(5)
+
+    def get_result_length(self):
+        # считает количество элементов в списке результатов
+        count = 0
+        current = self.result_head
+        while current is not None:
+            count += 1
+            current = current.next
+        return count
+
+    def append_result(self, value):
+        # добавляет новое уродливое число в конец связного списка результатов
+        current = self.result_head
+        while current.next is not None:
+            current = current.next
+        current.next = Node(value)
+
+    def get_min(self, a, b, c):
+        # возвращает минимальное из трёх чисел — чтобы выбрать следующее уродливое число
+        min_val = a
+        if b < min_val:
+            min_val = b
+        if c < min_val:
+            min_val = c
+        return min_val
+
+    def generate(self):
+        # основной алгоритм генерации уродливых чисел
+        while self.get_result_length() < self.count:
+            v2 = self.q2.peek()
+            v3 = self.q3.peek()
+            v5 = self.q5.peek()
+
+            next_val = self.get_min(v2, v3, v5)  # выбираем минимальное число
+            self.append_result(next_val)  # добавляем его в список результатов
+
+            # удаляем число из всех очередей, где оно встречается, чтобы не было дублей
+            if next_val == v2:
+                self.q2.dequeue()
+            if next_val == v3:
+                self.q3.dequeue()
+            if next_val == v5:
+                self.q5.dequeue()
+
+            # добавляем новые числа, умножая next_val на 2, 3 и 5
+            self.q2.enqueue(next_val * 2)
+            self.q3.enqueue(next_val * 3)
+            self.q5.enqueue(next_val * 5)
+
+    def get_result_list(self):
+        # превращает связный список уродливых чисел в обычный список Python для удобного вывода
+        values = []
+        current = self.result_head
+        while current is not None:
+            values.append(current.value)
+            current = current.next
+        return values
+
+
+class UserInterface: # класс для взаимодействия с пользователем
+    # запрашивает количество чисел, запускает генератор и выводит результат
+    def run(self):
+        print("генератор чисел, содержащих только множители 2, 3 и 5.")
+        while True:
+            try:
+                n_str = input("введите количество чисел (>0): ")
+                if not n_str.isdigit():
+                    raise ValueError("введите положительное целое число.")
+                n = int(n_str)
+                if n <= 0:
+                    raise ValueError("число должно быть больше нуля.")
+                generator = UglyNumberGenerator(n)  # создаём генератор
+                generator.generate()  # запускаем генерацию чисел
+                print("результат:")
+                print(generator.get_result_list())  # выводим результат в виде списка
+                break
+            except Exception as e:
+                print("ошибка:", e)
+
+
+if __name__ == "__main__":
+    ui = UserInterface()
+    ui.run()
